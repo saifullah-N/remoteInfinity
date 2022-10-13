@@ -26,47 +26,47 @@ html(lang="en")
     #layout
       a#menuLink.menu-link(href="#menu"): span
 
-      //- #menu
-      //-   button.save.pure-button.button-success(:disabled="!modified",
-      //-     @click="save") Save
+      #menu
+        button.save.pure-button.button-success(:disabled="!modified",
+          @click="save") Save
 
-      //-   .pure-menu
-      //-     ul.pure-menu-list
-      //-       li.pure-menu-heading
-      //-         a.pure-menu-link(href="#control") Control
+        .pure-menu
+          ul.pure-menu-list
+            li.pure-menu-heading
+              a.pure-menu-link(href="#control") Control
 
-      //-       li.pure-menu-heading
-      //-         a.pure-menu-link(href="#settings") Settings
+            li.pure-menu-heading
+              a.pure-menu-link(href="#settings") Settings
 
-      //-       li.pure-menu-heading
-      //-         a.pure-menu-link(href="#motor:0") Motors
+            li.pure-menu-heading
+              a.pure-menu-link(href="#motor:0") Motors
 
-      //-       li.pure-menu-item(v-for="motor in config.motors")
-      //-         a.pure-menu-link(:href="'#motor:' + $index") Motor {{$index}}
+            li.pure-menu-item(v-for="motor in config.motors")
+              a.pure-menu-link(:href="'#motor:' + $index") Motor {{$index}}
 
-      //-       li.pure-menu-heading
-      //-         a.pure-menu-link(href="#tool") Tool
+            li.pure-menu-heading
+              a.pure-menu-link(href="#tool") Tool
 
-      //-       li.pure-menu-heading
-      //-         a.pure-menu-link(href="#io") I/O
+            li.pure-menu-heading
+              a.pure-menu-link(href="#io") I/O
 
-      //-       li.pure-menu-heading
-      //-         a.pure-menu-link(href="#admin-general") Admin
+            li.pure-menu-heading
+              a.pure-menu-link(href="#admin-general") Admin
 
-      //-       li.pure-menu-item
-      //-         a.pure-menu-link(href="#admin-general") General
+            li.pure-menu-item
+              a.pure-menu-link(href="#admin-general") General
 
-      //-       li.pure-menu-item
-      //-         a.pure-menu-link(href="#admin-network") Network
+            li.pure-menu-item
+              a.pure-menu-link(href="#admin-network") Network
 
-      //-       li.pure-menu-heading
-      //-         a.pure-menu-link(href="#cheat-sheet") Cheat Sheet
+            li.pure-menu-heading
+              a.pure-menu-link(href="#cheat-sheet") Cheat Sheet
 
-      //-       li.pure-menu-heading
-      //-         a.pure-menu-link(href="#help") Help
+            li.pure-menu-heading
+              a.pure-menu-link(href="#help") Help
               
-      //-       button.pure-button.pure-button-primary(@click="showShutdownDialog", style="width: 100%")
-      //-         .fa.fa-power-off              
+            button.pure-button.pure-button-primary(@click="showShutdownDialog", style="width: 100%")
+              .fa.fa-power-off              
 
       #main
         .nav-header
