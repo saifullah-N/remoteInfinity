@@ -17,7 +17,8 @@ html(lang="en")
     style: include ../../build/http/svelte-components/style.css
     style: include:stylus ../stylus/style.styl
 
-  body(v-cloak)
+  //- body(v-cloak)
+
     #svelte-dialog-host
 
     #overlay(v-if="status != 'connected'")
@@ -179,3 +180,2066 @@ html(lang="en")
     script: include:browserify ../js/main.js
     script: include ../../build/http/svelte-components/index.js
     script: include ../static/js/ui.js
+<control-view/>
+control-view
+control-view
+
+    script#admin-general-view-template(type="text/x-template")
+  #admin-general
+    h2 Firmware
+    button.pure-button.pure-button-primary(@click="check") Check
+    button.pure-button.pure-button-primary(@click="upgrade") Upgrade via Web
+    label.pure-button.pure-button-primary(@click="upload_firmware") Upgrade via File
+    form.upload-firmware.file-upload
+      input(type="file", accept=".bz2", @change="upload")
+
+    p
+      input(type="checkbox", v-model="autoCheckUpgrade",
+        @change="change_auto_check_upgrade")
+      label(for="auto-check-upgrade") &nbsp; Automatically check for upgrades
+
+    h2 Configuration
+    button.pure-button.pure-button-primary(@click="backup") Backup
+
+    label.pure-button.pure-button-primary(@click="restore_config") Restore
+    form.restore-config.file-upload
+      input(type="file", accept=".json", @change="restore")
+
+    button.pure-button.pure-button-primary(@click="confirmReset = true") Reset    
+    message(:show.sync="confirmReset")
+      h3(slot="header") Reset to default configuration?
+      p(slot="body") Non-network configuration changes will be lost.
+      p(slot="body") Select defaults to restore:
+      p.reset-variants(slot="body")
+        input#tab1(type="radio", name="reset_variant" @click="reset_variant = 'machinist_x35'")
+        label(for="tab1", title="Machinist X-35") Machinist X-35
+
+        input#tab2(type="radio", name="reset_variant" @click="reset_variant = 'woodworker_x35'")
+        label(for="tab2", title="Woodworker X-35") Woodworker X-35
+
+        input#tab3(type="radio", name="reset_variant" @click="reset_variant = 'woodworker_x50'")
+        label(for="tab3", title="Woodworker X-50") Woodworker X-50
+
+        input#tab4(type="radio", name="reset_variant" @click="reset_variant = 'journeyman_x50'")
+        label(for="tab4", title="Journeyman X-50") Journeyman X-50
+      div(slot="footer")
+        button.pure-button(@click="confirmReset = false") Cancel
+        button.pure-button.pure-button-primary(@click="reset") Reset
+        
+    h2 Debugging
+    a(href="/api/log", target="_blank")
+      button.pure-button.pure-button-primary View Log
+    a(href="/api/bugreport")
+      button.pure-button.pure-button-primary Bug Report
+script#admin-network-view-template(type="text/x-template")
+  #admin-network
+script#axis-control-template(type="text/x-template")
+  svg(xmlns="http://www.w3.org/2000/svg",
+    xmlns:xlink="http://www.w3.org/1999/xlink",
+    width="100%", viewBox="0 0 300 300")
+    defs
+      lineargradient#red
+        stop(offset="0", stop-color="#d26969")
+        stop(offset="1", stop-color="#ff7f7f")
+
+      lineargradient#green
+        stop(offset="0", stop-color="#69d269")
+        stop(offset="1", stop-color="#7fff7f")
+
+      lineargradient#blue
+        stop(offset="0", stop-color="#6969d2")
+        stop(offset="1", stop-color="#7f7fff")
+
+      lineargradient#orange
+        stop(offset="0", stop-color="#d29d69")
+        stop(offset="1", stop-color="#ffbf7f")
+
+      lineargradient#cyan
+        stop(offset="0", stop-color="#69d2d2")
+        stop(offset="1", stop-color="#7fffff")
+
+      lineargradient#purple
+        stop(offset="0", stop-color="#d269d2")
+        stop(offset="1", stop-color="#ff7fff")
+
+
+      each color in 'red green blue orange cyan purple'.split(' ')
+        lineargradient(xlink:href="#" + color, id=color + "-1",
+          gradientunits="userSpaceOnUse", gradienttransform="rotate(180 7 5)",
+          x1="0", y1="0", x2="15", y2="10")
+
+        lineargradient(xlink:href="#" + color, id=color + "-2",
+          gradientunits="userSpaceOnUse", x1="10", y1="10", x2="40", y2="40")
+
+
+      filter#shadow(x="-50%" y="-50%" width="200%" height="200%")
+        feOffset(in="SourceAlpha", dx="3", dy="3")
+        feComponentTransfer
+          feFuncR(type="discrete", tableValues="0.05")
+          feFuncG(type="discrete", tableValues="0.05")
+          feFuncB(type="discrete", tableValues="0.05")
+        feGaussianBlur(result="shadow", stdDeviation="5")
+        feBlend(in="SourceGraphic", in2="shadow", mode="normal")
+
+      path#pie-1(d="M107,0 83,0 0,83 0,107A107,107 0 0 0 107,0Z")
+      path#pie-2(d="M83,0 59,0 0,59 0,83A83,83 0 0 0 83,0Z")
+      path#pie-3(d="M59,0 35,0 0,35 0,59A59,59 0 0 0 59,0Z")
+      path#pie-4(d="M35,0 0,0 0,35A35,35 0 0 0 35,0Z")
+
+      path#arrow(d="M-16,9 0,9 0,17 17,0 0,-17 0,-9 -16,-9 -16,9Z")
+
+      circle#centrebutton(cx="0",cy="0",r="15",fill="green")
+
+
+    g(transform="scale(1.0, 1.0)")
+      // 100% ring
+      g.ring(fill="#9f9f9f", filter="url(#shadow)")
+        use.button(xlink:href="#pie-1", v-if="enabled[0]",
+          transform="translate(134 121) rotate(-45)",
+          @mousedown="jog(0, 3, 1)", @mouseup="release(0)",
+          @touchstart.prevent="jog(0, 3, 1)", @touchend.prevent="release(0)")
+
+        use.button(xlink:href="#pie-1", v-if="enabled[0]",
+          transform="translate(115 121) rotate(135)",
+          @mousedown="jog(0, 3, -1)", @mouseup="release(0)",
+          @touchstart.prevent="jog(0, 3, -1)", @touchend.prevent="release(0)")
+
+        g.button(v-if="enabled[1]",
+          @mousedown="jog(1, 3, 1)", @mouseup="release(1)",
+          @touchstart.prevent="jog(1, 3, 1)", @touchend.prevent="release(1)")
+          use.button(xlink:href="#pie-1",
+            transform="translate(124 111) rotate(-135)")
+          text(x="125", y="21", transform="rotate(22 125 125)") {{text(3)}}
+          text(x="125", y="21", transform="rotate(-22 125 125)") {{text(3)}}
+          use.button(xlink:href="#pie-1", fill="transparent",
+            transform="translate(124 111) rotate(-135)")
+
+        use.button(xlink:href="#pie-1", v-if="enabled[1]",
+          transform="translate(124 130) rotate(45)",
+          @mousedown="jog(1, 3, -1)", @mouseup="release(1)",
+          @touchstart.prevent="jog(1, 3, -1)", @touchend.prevent="release(1)")
+
+      // 50% ring
+      g.ring(fill="#c5c5c5", filter="url(#shadow)")
+        use.button(xlink:href="#pie-2", v-if="enabled[0]",
+          transform="translate(134 121) rotate(-45)",
+          @mousedown="jog(0, 2, 1)", @mouseup="release(0)",
+          @touchstart.prevent="jog(0, 2, 1)", @touchend.prevent="release(0)")
+
+        use.button(xlink:href="#pie-2", v-if="enabled[0]",
+          transform="translate(115 121) rotate(135)",
+          @mousedown="jog(0, 2, -1)", @mouseup="release(0)",
+          @touchstart.prevent="jog(0, 2, -1)", @touchend.prevent="release(0)")
+
+        g.button(v-if="enabled[1]",
+          @mousedown="jog(1, 2, 1)", @mouseup="release(1)",
+          @touchstart.prevent="jog(1, 2, 1)", @touchend.prevent="release(1)")
+          use.button(xlink:href="#pie-2",
+            transform="translate(124 111) rotate(-135)")
+          text(x="125", y="48") {{text(2)}}
+          use.button(xlink:href="#pie-2", fill="transparent",
+            transform="translate(124 111) rotate(-135)")
+
+        use.button(xlink:href="#pie-2", v-if="enabled[1]",
+          transform="translate(124 130) rotate(45)",
+          @mousedown="jog(1, 2, -1)", @mouseup="release(1)",
+          @touchstart.prevent="jog(1, 2, -1)", @touchend.prevent="release(1)")
+
+
+      // 25% ring
+      g.ring(fill="#e2e2e2", filter="url(#shadow)")
+        use.button(xlink:href="#pie-3", v-if="enabled[0]",
+          transform="translate(134 121) rotate(-45)",
+          @mousedown="jog(0, 1, 1)", @mouseup="release(0)",
+          @touchstart.prevent="jog(0, 1, 1)", @touchend.prevent="release(0)")
+
+        use.button(xlink:href="#pie-3", v-if="enabled[0]",
+          transform="translate(115 121) rotate(135)",
+          @mousedown="jog(0, 1, -1)", @mouseup="release(0)",
+          @touchstart.prevent="jog(0, 1, -1)", @touchend.prevent="release(0)")
+
+        g.button(v-if="enabled[1]",
+          @mousedown="jog(1, 1, 1)", @mouseup="release(1)",
+          @touchstart.prevent="jog(1, 1, 1)", @touchend.prevent="release(1)")
+          use.button(xlink:href="#pie-3",
+            transform="translate(124 111) rotate(-135)")
+          text(x="125", y="69") {{text(1)}}
+          use.button(xlink:href="#pie-3", fill="transparent",
+            transform="translate(124 111) rotate(-135)")
+
+        use.button(xlink:href="#pie-3", v-if="enabled[1]",
+          transform="translate(124 130) rotate(45)",
+          @mousedown="jog(1, 1, -1)", @mouseup="release(1)",
+          @touchstart.prevent="jog(1, 1, -1)", @touchend.prevent="release(1)")
+
+
+      // 10% ring
+      g.ring(fill="#f7f7f7", filter="url(#shadow)")
+        use.button(xlink:href="#pie-4", v-if="enabled[0]",
+          transform="translate(134 121) rotate(-45)",
+          @mousedown="jog(0, 0, 1)", @mouseup="release(0)",
+          @touchstart.prevent="jog(0, 0, 1)", @touchend.prevent="release(0)")
+
+        use.button(xlink:href="#pie-4", v-if="enabled[0]",
+          transform="translate(115 121) rotate(135)",
+          @mousedown="jog(0, 0, -1)", @mouseup="release(0)",
+          @touchstart.prevent="jog(0, 0, -1)", @touchend.prevent="release(0)")
+
+        g.button(v-if="enabled[1]",
+          @mousedown="jog(1, 0, 1)", @mouseup="release(1)",
+          @touchstart.prevent="jog(1, 0, 1)", @touchend.prevent="release(1)")
+          use.button(xlink:href="#pie-4",
+            transform="translate(124 111) rotate(-135)")
+          text(x="125", y="91") {{text(0)}}
+          use.button(xlink:href="#pie-4", fill="transparent",
+            transform="translate(124 111) rotate(-135)")
+
+        use.button(xlink:href="#pie-4", v-if="enabled[1]",
+          transform="translate(124 130) rotate(45)",
+          @mousedown="jog(1, 0, -1)", @mouseup="release(1)",
+          @touchstart.prevent="jog(1, 0, -1)", @touchend.prevent="release(1)")
+
+
+      // +A
+      g.button.arrow(v-if="enabled[0]", transform="translate(230 120)",
+        @mousedown="jog(0, 3, 1)", @mouseup="release(0)",
+        @touchstart.prevent="jog(0, 3, 1)", @touchend.prevent="release(0)")
+        use(xlink:href="#arrow", fill="url(#{{colors[0]}}-1)")
+        text(x="-12", y="5", font-size="14", textLength="21") +{{axes[0]}}
+
+
+      // -A
+      g.button.arrow(v-if="enabled[0]", transform="translate(20 120)",
+        @mousedown="jog(0, 3, -1)", @mouseup="release(0)",
+        @touchstart.prevent="jog(0, 3, -1)", @touchend.prevent="release(0)")
+        use(xlink:href="#arrow", fill="url(#{{colors[0]}}-1)",
+          transform="rotate(180)")
+        text(x="-8", y="5", font-size="14", textLength="16") -{{axes[0]}}
+
+
+      // +B
+      g.button.arrow(v-if="enabled[1]", transform="translate(125, 18)",
+        @mousedown="jog(1, 3, 1)", @mouseup="release(1)",
+        @touchstart.prevent="jog(1, 3, 1)", @touchend.prevent="release(1)")
+        use(xlink:href="#arrow", fill="url(#{{colors[1]}}-1)",
+          transform="rotate(-90)")
+        text(x="-8", y="5", font-size="12", textLength="16") +{{axes[1]}}
+
+
+      // -B
+      g.button.arrow(v-if="enabled[1]", transform="translate(125, 225)",
+        @mousedown="jog(1, 3, -1)", @mouseup="release(1)",
+        @touchstart.prevent="jog(1, 3, -1)", @touchend.prevent="release(1)")
+        use(xlink:href="#arrow", fill="url(#{{colors[1]}}-1)",
+          transform="rotate(90)")
+        text(x="-7", y="5", font-size="12", textLength="14") -{{axes[1]}}
+
+      // Return to zero button
+      g.button.cicle(@mouseup="back2zero(0,1)",transform="translate(124,121)")
+        use(xlink:href="#centrebutton")
+        text(x="-12",y="3",font-size="9") {{axes[0]}}0{{axes[1]}}0
+script#cheat-sheet-view-template(type="text/x-template")
+  // Modified from http://linuxcnc.org/docs/html/gcode.html
+  - var base = 'http://linuxcnc.org/docs/html/gcode';
+  - var camotics_base = 'https://camotics.org/gcode.html';
+
+  .cheat-sheet
+    h2 GCode Cheat Sheet
+
+    table
+      tr
+        th Code
+        th Parameters
+        th Description
+
+      tr.spacer-row: th
+      tr.header-row
+        th(colspan='3') Motion
+      tr
+        td
+          a(href=`${base}/g-code.html#gcode:g0`) G0
+        td
+        td Rapid Move
+      tr
+        td
+          a(target="_blank", href=`${base}/g-code.html#gcode:g1`) G1
+        td
+        td Linear Move
+      tr
+        td
+          a(target="_blank", href=`${base}/g-code.html#gcode:g2-g3`) G2, G3
+        td I J K or R, P
+        td Arc Move
+      tr
+        td
+          a(target="_blank", href=`${base}/g-code.html#gcode:g4`) G4
+        td P
+        td Dwell
+      tr.unimplemented(v-if="showUnimplemented")
+        td
+          a(target="_blank", href=`${base}/g-code.html#gcode:g5`) G5
+        td I J P Q
+        td Cubic Spline
+      tr.unimplemented(v-if="showUnimplemented")
+        td
+          a(target="_blank", href=`${base}/g-code.html#gcode:g5.1`) G5.1
+        td I J
+        td Quadratic Spline
+      tr.unimplemented(v-if="showUnimplemented")
+        td
+          a(target="_blank", href=`${base}/g-code.html#gcode:g5.2-g5.3`) G5.2
+        td P L
+        td NURBS
+      tr.unimplemented(v-if="showUnimplemented")
+        td
+          a(target="_blank", href=`${base}/g-code.html#gcode:g33.1`) G33.1
+        td K
+        td Rigid Tapping
+
+      tr.spacer-row: th
+      tr.header-row
+        th(colspan='3') Homing & Probing
+      tr
+        td
+          a(target="_blank", href=`${camotics_base}#gcodes-g28_2-28_3`)
+            | G28.2, G28.3
+        td
+        td (Un)set Axis Homed State
+      tr
+        td
+          a(target="_blank", href=`${base}/g-code.html#gcode:g38`) G38.2 - G38.5
+        td
+        td Straight Probe
+      tr
+        td
+          a(target="_blank", href=`${camotics_base}#gcodes-g38_6-38_9`)
+            | G38.6 - G38.9
+        td
+        td Seek Switch
+
+      tr.spacer-row: th
+      tr.header-row
+        th(colspan='3') Tool Control
+      tr
+        td
+          a(href=`${base}/other-code.html#sec:select-tool`) T
+        td
+        td Select Tool
+      tr
+        td
+          a(target="_blank", href=`${base}/m-code.html#mcode:m6`) M6
+        td T
+        td Tool Change
+      tr.unimplemented(v-if="showUnimplemented")
+        td
+          a(target="_blank", href=`${base}/m-code.html#mcode:m61`) M61
+        td Q
+        td Set Current Tool
+      tr
+        td
+          a(target="_blank", href=`${base}/g-code.html#gcode:g10-l1`) G10 L1
+        td P Q R
+        td Set Tool Table
+      tr
+        td
+          a(target="_blank", href=`${base}/g-code.html#gcode:g10-l10`) G10 L10
+        td P
+        td Set Tool Table
+      tr
+        td
+          a(target="_blank", href=`${base}/g-code.html#gcode:g10-l11`) G10 L11
+        td P
+        td Set Tool Table
+      tr
+        td
+          a(target="_blank", href=`${base}/g-code.html#gcode:g43`) G43
+        td  H
+        td Tool Length Offset
+      tr
+        td
+          a(target="_blank", href=`${base}/g-code.html#gcode:g43.1`) G43.1
+        td
+        td Dynamic Tool Length Offset
+      tr
+        td
+          a(target="_blank", href=`${base}/g-code.html#gcode:g43.2`) G43.2
+        td  H
+        td Apply additional Tool Length Offset
+      tr
+        td
+          a(target="_blank", href=`${base}/g-code.html#gcode:g49`) G49
+        td
+        td Cancel Tool Length Compensation
+
+      tr.spacer-row: th
+      tr.header-row
+        th(colspan='3') Feed Control
+      tr
+        td
+          a(href=`${base}/other-code.html#sec:set-feed-rate`) F
+        td
+        td Set Feed Rate
+      tr.unimplemented(v-if="showUnimplemented")
+        td
+          a(target="_blank", href=`${base}/g-code.html#gcode:g93-g94-g95`)
+            | G93, G94, G95
+        td
+        td Feed Rate Mode
+      tr.unimplemented(v-if="showUnimplemented")
+        td
+          a(target="_blank", href=`${base}/m-code.html#mcode:m52`) M52
+        td P0 (off) or P1 (on)
+        td Adaptive Feed Control
+      tr.unimplemented(v-if="showUnimplemented")
+        td
+          a(target="_blank", href=`${base}/m-code.html#mcode:m53`) M53
+        td P0 (off) or P1 (on)
+        td Feed Stop Control
+
+      tr.spacer-row: th
+      tr.header-row
+        th(colspan='3') Spindle Control
+      tr
+        td
+          a(href=`${base}/other-code.html#sec:set-spindle-speed`) S
+        td
+        td Set Spindle Speed
+      tr
+        td
+          a(target="_blank", href=`${base}/m-code.html#mcode:m3-m4-m5`)
+            | M3, M4, M5
+        td S
+        td Spindle Control
+      tr.unimplemented(v-if="showUnimplemented")
+        td
+          a(target="_blank", href=`${base}/m-code.html#mcode:m19`) M19
+        td
+        td Orient Spindle
+      tr.unimplemented(v-if="showUnimplemented")
+        td
+          a(target="_blank", href=`${base}/g-code.html#gcode:g96-g97`) G96, G97
+        td  S D
+        td Spindle Control Mode
+      tr.unimplemented(v-if="showUnimplemented")
+        td
+          a(target="_blank", href=`${base}/g-code.html#gcode:g33`) G33
+        td K
+        td Spindle Synchronized Motion
+
+      tr.spacer-row: th
+      tr.header-row
+        th(colspan='3') Coolant
+      tr
+        td
+          a(target="_blank", href=`${base}/m-code.html#mcode:m7-m8-m9`)
+            | M7, M8, M9
+        td
+        td Coolant Control
+
+      tr.spacer-row: th
+      tr.header-row
+        th(colspan='3') Stopping
+      tr
+        td
+          a(target="_blank", href=`${base}/m-code.html#mcode:m0-m1`) M0, M1
+        td
+        td Program Pause
+      tr
+        td
+          a(target="_blank", href=`${base}/m-code.html#mcode:m2-m30`) M2, M30
+        td
+        td Program End
+      tr.unimplemented(v-if="showUnimplemented")
+        td
+          a(target="_blank", href=`${base}/m-code.html#mcode:m60`) M60
+        td
+        td Pallet Change Pause
+
+      tr.spacer-row: th
+      tr.header-row
+        th(colspan='3') Units
+      tr
+        td
+          a(target="_blank", href=`${base}/g-code.html#gcode:g20-g21`) G20, G21
+        td
+        td Units (inch, mm)
+
+      tr.spacer-row: th
+      tr.header-row
+        th(colspan='3') Distance Mode
+      tr
+        td
+          a(target="_blank", href=`${base}/g-code.html#gcode:g90-g91`) G90, G91
+        td
+        td Distance Mode
+      tr
+        td
+          a(target="_blank", href=`${base}/g-code.html#gcode:g90.1-g91.1`)
+            | G90.1, G91.1
+        td
+        td Arc Distance Mode
+      tr.unimplemented(v-if="showUnimplemented")
+        td
+          a(target="_blank", href=`${base}/g-code.html#gcode:g7`) G7
+        td
+        td Lathe Diameter Mode
+      tr.unimplemented(v-if="showUnimplemented")
+        td
+          a(target="_blank", href=`${base}/g-code.html#gcode:g8`) G8
+        td
+        td Lathe Radius Mode
+
+      tr.spacer-row.unimplemented(v-if="showUnimplemented"): th
+      tr.header-row.unimplemented(v-if="showUnimplemented")
+        th(colspan='3') Cutter Radius Compensation
+      tr.unimplemented(v-if="showUnimplemented")
+        td
+          a(target="_blank", href=`${base}/g-code.html#gcode:g40`) G40
+        td
+        td Compensation Off
+      tr.unimplemented(v-if="showUnimplemented")
+        td
+          a(target="_blank", href=`${base}/g-code.html#gcode:g41-g42`) G41,G42
+        td D
+        td Cutter Compensation
+      tr.unimplemented(v-if="showUnimplemented")
+        td
+          a(target="_blank", href=`${base}/g-code.html#gcode:g41.1-g42.1`)
+            | G41.1, G42.1
+        td D L
+        td Dynamic Cutter Compensation
+
+      tr.spacer-row: th
+      tr.header-row
+        th(colspan='3') Path Control Mode
+      tr
+        td
+          a(target="_blank", href=`${base}/g-code.html#gcode:g61-g61.1`)
+            | G61 G61.1
+        td
+        td Exact Path Mode
+      tr
+        td
+          a(target="_blank", href=`${base}/g-code.html#gcode:g64`) G64
+        td P Q
+        td Path Blending (Partial support)
+
+      tr.spacer-row.unimplemented(v-if="showUnimplemented"): th
+      tr.header-row.unimplemented(v-if="showUnimplemented")
+        th(colspan='3') Overrides
+      tr.unimplemented(v-if="showUnimplemented")
+        td
+          a(target="_blank", href=`${base}/m-code.html#mcode:m48-m49`) M48, M49
+        td
+        td Speed and Feed Override Control
+      tr.unimplemented(v-if="showUnimplemented")
+        td
+          a(target="_blank", href=`${base}/m-code.html#mcode:m50`) M50
+        td P0 (off) or P1 (on)
+        td Feed Override Control
+      tr.unimplemented(v-if="showUnimplemented")
+        td
+          a(target="_blank", href=`${base}/m-code.html#mcode:m51`) M51
+        td P0 (off) or P1 (on)
+        td Spindle Speed Override Control
+
+      tr.spacer-row: th
+      tr.header-row
+        th(colspan='3') Coordinate Systems, Offsets & Planes
+      tr
+        td
+          a(target="_blank", href=`${base}/g-code.html#gcode:g54-g59.3`)
+            | G54-G59.3
+        td
+        td Select Coordinate System
+      tr
+        td
+          a(target="_blank", href=`${base}/g-code.html#gcode:g10-l2`) G10 L2
+        td P R
+        td Set Coordinate System
+      tr
+        td
+          a(target="_blank", href=`${base}/g-code.html#gcode:g10-l20`) G10 L20
+        td P
+        td Set Coordinate System
+      tr
+        td
+          a(target="_blank", href=`${base}/g-code.html#gcode:g52`) G52
+        td
+        td Local Coordinate System Offset
+      tr
+        td
+          a(target="_blank", href=`${base}/g-code.html#gcode:g53`) G53
+        td
+        td Move in Machine Coordinates
+      tr
+        td
+          a(target="_blank", href=`${base}/g-code.html#gcode:g92`) G92
+        td
+        td Coordinate System Offset
+      tr
+        td
+          a(target="_blank", href=`${base}/g-code.html#gcode:g92.1-g92.2`)
+            | G92.1, G92.2
+        td
+        td Reset G92 Offsets
+      tr
+        td
+          a(target="_blank", href=`${base}/g-code.html#gcode:g92.3`) G92.3
+        td
+        td Restore G92 Offsets
+      tr
+        td
+          a(target="_blank", href=`${base}/g-code.html#gcode:g28-g28.1`)
+            | G28, G28.1
+        td
+        td Go/Set Predefined Position
+      tr
+        td
+          a(target="_blank", href=`${base}/g-code.html#gcode:g30-g30.1`)
+            | G30, G30.1
+        td
+        td Go/Set Predefined Position
+      tr
+        td
+          a(target="_blank", href=`${base}/g-code.html#gcode:g17-g19.1`)
+            | G17 - G19.1
+        td (affects G2, G3, G81…G89, G40…G42)
+        td Plane Select
+
+      tr.spacer-row: th
+      tr.header-row
+        th(colspan='3') Flow-control Codes
+      tr
+        td
+          a(target="_blank", href=`${base}/o-code.html#ocode:subroutines`)
+            | o sub/endsub/call
+        td
+        td Subroutines, sub/endsub call
+      tr
+        td
+          a(target="_blank", href=`${base}/o-code.html#ocode:looping`) o while
+        td
+        td Looping, while/endwhile do/while
+      tr
+        td
+          a(target="_blank", href=`${base}/o-code.html#ocode:conditional`) o if
+        td
+        td Conditional, if/else/endif
+      tr
+        td
+          a(target="_blank", href=`${base}/o-code.html#ocode:repeat`) o repeat
+        td
+        td Repeat a loop of code
+      tr
+        td
+          a(target="_blank", href=`${base}/o-code.html#ocode:indirection`) []
+        td
+        td Indirection
+      tr
+        td
+          a(target="_blank", href=`${base}/o-code.html#ocode:calling-files`)
+            | o call
+        td
+        td Call named or numbered file
+
+      tr.spacer-row: th
+      tr.header-row
+        th(colspan='3') Modal State
+      tr
+        td
+          a(target="_blank", href=`${base}/m-code.html#mcode:m70`) M70
+        td
+        td Save modal state
+      tr
+        td
+          a(target="_blank", href=`${base}/m-code.html#mcode:m71`) M71
+        td
+        td Invalidate stored state
+      tr
+        td
+          a(target="_blank", href=`${base}/m-code.html#mcode:m72`) M72
+        td
+        td Restore modal state
+      tr
+        td
+          a(target="_blank", href=`${base}/m-code.html#mcode:m73`) M73
+        td
+        td Save and Auto-restore modal state
+
+      tr.spacer-row.unimplemented(v-if="showUnimplemented"): th
+      tr.header-row.unimplemented(v-if="showUnimplemented")
+        th(colspan='3') Input/Output
+      tr.unimplemented(v-if="showUnimplemented")
+        td
+          a(target="_blank", href=`${base}/m-code.html#mcode:m62-m65`) M62 - M65
+        td P
+        td Digital Output Control
+      tr.unimplemented(v-if="showUnimplemented")
+        td
+          a(target="_blank", href=`${base}/m-code.html#mcode:m66`) M66
+        td P E L Q
+        td Wait on Input
+      tr.unimplemented(v-if="showUnimplemented")
+        td
+          a(target="_blank", href=`${base}/m-code.html#mcode:m67`) M67
+        td T
+        td Analog Output,Synchronized
+      tr.unimplemented(v-if="showUnimplemented")
+        td
+          a(target="_blank", href=`${base}/m-code.html#mcode:m68`) M68
+        td T
+        td Analog Output, Immediate
+
+      tr.spacer-row.unimplemented(v-if="showUnimplemented"): th
+      tr.header-row.unimplemented(v-if="showUnimplemented")
+        th(colspan='3') User Defined Commands
+      tr.unimplemented(v-if="showUnimplemented")
+        td
+          a(target="_blank", href=`${base}/m-code.html#mcode:m100-m199`)
+            | M101 - M199
+        td P Q
+        td User Defined Commands
+
+      tr.spacer-row: th
+      tr.header-row
+        th(colspan='3') Canned cycles
+      tr
+        td
+          a(target="_blank", href=`${base}/g-code.html#gcode:g80`) G80
+        td
+        td Cancel Canned Cycle
+      tr
+        td
+          a(target="_blank", href=`${base}/g-code.html#gcode:g81`) G81
+        td R L (P)
+        td Drilling Cycle
+      tr
+        td
+          a(target="_blank", href=`${base}/g-code.html#gcode:g82`) G82
+        td R L (P)
+        td Drilling Cycle, Dwell
+      tr.unimplemented(v-if="showUnimplemented")
+        td
+          a(target="_blank", href=`${base}/g-code.html#gcode:g83`) G83
+        td R L Q
+        td Drilling Cycle, Peck
+      tr
+        td
+          a(target="_blank", href=`${base}/g-code.html#gcode:g73`) G73
+        td R L Q
+        td Drilling Cycle, Chip Breaking
+      tr
+        td
+          a(target="_blank", href=`${base}/g-code.html#gcode:g85`) G85
+        td R L (P)
+        td Boring Cycle, Feed Out
+      tr
+        td
+          a(target="_blank", href=`${base}/g-code.html#gcode:g89`) G89
+        td R L (P)
+        td Boring Cycle, Dwell, Feed Out
+      tr.unimplemented(v-if="showUnimplemented")
+        td
+          a(target="_blank", href=`${base}/g-code.html#gcode:g76`) G76
+        td P Z I J R K Q H L E
+        td Threading Cycle
+      tr.unimplemented(v-if="showUnimplemented")
+        td
+          a(target="_blank", href=`${base}/g-code.html#gcode:g98-g99`) G98, G99
+        td
+        td Canned Cycle Return Level
+
+      tr.spacer-row: th
+      tr.header-row
+        th(colspan='3') Comments & Messages
+      tr
+        td
+          a(target="_blank", href=`${base}/overview.html#gcode:comments`) ; (…)
+        td
+        td Comments
+      tr
+        td
+          a(target="_blank", href=`${base}/overview.html#gcode:messages`)
+            | (MSG,…)
+        td
+        td Messages
+      tr
+        td
+          a(target="_blank", href=`${base}/overview.html#gcode:debug`) (DEBUG,…)
+        td
+        td Debug Messages
+      tr.unimplemented(v-if="showUnimplemented")
+        td
+          a(target="_blank", href=`${base}/overview.html#gcode:print`) (PRINT,…)
+        td
+        td Print Messages
+      tr
+        td
+          a(target="_blank", href=`${base}/overview.html#_logging`) (LOG,…)
+        td
+        td Logging Messages
+
+    div
+      input(type="checkbox", v-model="showUnimplemented")
+      label Show unsupported codes
+
+    h2 Further GCode Programming Documentation
+
+    p
+      | The Buildbotics controller implements a subset of LinuxCNC GCode.
+      | Supported commands are listed above.  You can find further help with
+      | #[a(href="http://wikipedia.com/wiki/G-code", target="_blank") GCode]
+      | programming on the LinuxCNC website:
+
+    ul
+      li: a(href="http://linuxcnc.org/docs/html/gcode/overview.html",
+        target="_blank")
+        | G Code overview
+      li: a(href="http://linuxcnc.org/docs/html/gcode/g-code.html",
+        target="_blank")
+        | G Code reference
+      li: a(href="http://linuxcnc.org/docs/html/gcode/m-code.html",
+        target="_blank")
+        | M Code reference
+script#console-template(type="text/x-template")
+  .console
+    .toolbar
+      button.pure-button(title="Clear console.", @click="clear")
+        .fa.fa-trash
+        | &nbsp;Clear
+
+    .console-wrapper
+      table
+        tr
+          th Level
+          th Message
+
+        tr(v-for="msg in messages", class="log-{{msg.level || 'info'}}")
+          td {{msg.level  || 'info'}}
+          td.message {{msg.msg}}
+script#control-view-template(type="text/x-template")
+  #control
+    message(:show.sync="showGcodeMessage")
+      h3(slot="header") Processing New File
+
+      div(slot="body")
+        h3 Please wait..
+        p Simulating GCode to check for errors, calculate ETA and generate 3D view.
+        
+      div(slot="footer")
+        label Simulating {{(toolpath_progress || 0) | percent}}
+
+    table(style="table-layout: fixed; width: 100%;")
+      tr(style="height: fit-content;")
+        td(style="white-space: nowrap; width: 410px;", rowspan="2")
+          table.control-buttons(table-layout="fixed")
+            colgroup
+               col(style="width:100px")
+               col(style="width:100px")
+               col(style="width:100px")
+               col(style="width:100px")
+            tr
+              td(style="height:100px",align="center")
+                button(@click="jog_fn(-1,1,0,0)")
+                  .fa.fa-arrow-right(style="transform: rotate(-135deg);")
+              td(style="height:100px",align="center")
+                button(@click="jog_fn(0,1,0,0)") Y+
+              td(style="height:100px",align="center")
+                button(@click="jog_fn(1,1,0,0)")
+                  .fa.fa-arrow-right(style="transform: rotate(-45deg);")
+              td(style="height:100px",align="center")
+                button(,@click="jog_fn(0,0,1,0)") Z+
+            tr
+              td(style="height:100px",align="center")
+                button(@click="jog_fn(-1,0,0,0)") X-
+              td(style="height:100px",align="center")
+                button(@click="showMoveToZeroDialog('xy')")
+                  .fa.fa-bullseye(style="font-size: 173%")
+              td(style="height:100px",align="center")
+                button(@click="jog_fn(1,0,0,0)") X+
+              td(style="height:100px",align="center")
+                button(@click="showMoveToZeroDialog('z')") Z0
+            tr
+              td(style="height:100px",align="center")
+                button(@click="jog_fn(-1,-1,0,0)")
+                  .fa.fa-arrow-right(style="transform: rotate(135deg);")
+              td(style="height:100px",align="center")
+                button(@click="jog_fn(0,-1,0,0)") Y-
+              td(style="height:100px",align="center")
+                button(@click="jog_fn(1,-1,0,0)")
+                  .fa.fa-arrow-right(style="transform: rotate(45deg);")
+              td(style="height:100px",align="center")
+                button(@click="jog_fn(0,0,-1,0)") Z-
+            tr
+              td(style="height:100px",align="center")
+                button(:style="getJogIncrStyle('fine')", @click="jog_incr = 'fine'")
+                  span {{jog_incr_amounts[display_units].fine}}#[span.jog-units {{metric ? 'mm' : 'in'}}]
+              td(style="height:100px",align="center")
+                button(:style="getJogIncrStyle('small')", @click="jog_incr = 'small'")
+                  span {{jog_incr_amounts[display_units].small}}#[span.jog-units {{metric ? 'mm' : 'in'}}]
+              td(style="height:100px",align="center")
+                button(:style="getJogIncrStyle('medium')", @click="jog_incr = 'medium'")
+                  span {{jog_incr_amounts[display_units].medium}}#[span.jog-units {{metric ? 'mm' : 'in'}}]
+              td(style="height:100px",align="center")
+                button(:style="getJogIncrStyle('large')", @click="jog_incr = 'large'")
+                  span {{jog_incr_amounts[display_units].large}}#[span.jog-units {{metric ? 'mm' : 'in'}}]
+            tr
+              td(style="height:100px", align="center", colspan="2")
+                button(:class="state['pw'] ? '' : 'load-on'",
+                  style="height:100px;width:200px",
+                  @click="showProbeDialog('xyz')")
+                  | Probe XYZ
+
+              td(style="height:100px", align="center", colspan="2")
+                button(:class="state['pw'] ? '' : 'load-on'",
+                  style="height:100px;width:200px",
+                  @click="showProbeDialog('z')")
+                  | Probe Z
+
+        td(style="vertical-align: top;")
+          table.axes
+            tr(:class="axes.klass")
+              th.name Axis
+              th.position Position
+              th.absolute Absolute
+              th.offset Offset
+              th.state State
+              th.tstate Toolpath
+              th.actions
+                button.pure-button(disabled, style="height:60px;width:60px;display:none;")
+
+                button.pure-button(:disabled="!can_set_axis",
+                  title="Zero all axis offsets.", @click="zero()",style="height:60px;width:60px")
+                  .fa.fa-map-marker
+
+                button.pure-button(title="Home all axes.", @click="home()",
+                  :disabled="!is_idle",style="height:60px;width:60px")
+                  .fa.fa-home
+            
+            each axis in 'xyzabc'
+              tr.axis(:class=`${axis}.klass`, v-if=`${axis}.enabled`,
+                :title=`${axis}.title`)
+                th.name= axis
+                td.position: unit-value(:value=`${axis}.pos`, precision=4)
+                td.absolute: unit-value(:value=`${axis}.abs`, precision=3)
+                td.offset: unit-value(:value=`${axis}.off`, precision=3)
+                td.state
+                  .fa(:class=`'fa-' + ${axis}.icon`)
+                  | {{#{axis}.state}}
+                td.tstate(:class=`${axis}.tklass`, :title=`${axis}.toolmsg`, @click=`showToolpathMessageDialog('${axis}')`)
+                  .fa(:class=`'fa-' + ${axis}.ticon`)
+                  | {{#{axis}.tstate}}
+
+                th.actions
+                  button.pure-button(:disabled="!can_set_axis",
+                    title=`Set {{'${axis}' | upper}} axis position.`,
+                    @click=`show_set_position('${axis}')`, style="height:60px;width:60px")
+                    .fa.fa-cog
+
+                  button.pure-button(:disabled="!can_set_axis",
+                    title=`Zero {{'${axis}' | upper}} axis offset.`,
+                   @click=`zero('${axis}')`, style="height:60px;width:60px")
+                    .fa.fa-map-marker
+
+                  button.pure-button(:disabled="!is_idle", @click=`home('${axis}')`,
+                    title=`Home {{'${axis}' | upper}} axis.`, style="height:60px;width:60px")
+                    .fa.fa-home
+
+      
+      tr(style="vertical-align: top;")
+        td
+          table(width="100%")
+            tr
+              td(style="text-align:center")
+                table.info
+                  tr
+                    th State
+                    td(:class="{attention: highlight_state}") {{mach_state}}
+
+                  tr
+                    th Message
+                    td.message(:class="{attention: highlight_state}")
+                      | {{message.replace(/^#/, '')}}
+
+                  tr
+                    th Display Units
+                    td.units
+                      select(v-model="display_units")
+                        option(value="METRIC") METRIC
+                        option(value="IMPERIAL") IMPERIAL
+
+                  tr(title="Active tool")
+                    th Tool
+                    td {{state.tool || 0}}
+
+              td
+                table.info
+                  tr(
+                    title="Current velocity in {{metric ? 'meters' : 'inches'}} per minute")
+                    th Velocity
+                    td
+                      unit-value(:value="state.v", precision="2", unit="", iunit="",
+                        scale="0.0254")
+                      | {{metric ? ' m/min' : ' IPM'}}
+
+                  tr(title="Programmed feed rate.")
+                    th Feed
+                    td
+                      unit-value(:value="state.feed", precision="2", unit="", iunit="")
+                      | {{metric ? ' mm/min' : ' IPM'}}
+
+                  tr(title="Programed and actual speed.")
+                    th Speed
+                    td
+                      | {{state.speed || 0 | fixed 0}}
+                      span(v-if="!isNaN(state.s)") &nbsp;({{state.s | fixed 0}})
+                      = ' RPM'
+
+                  tr(title="Load switch states.")
+                    th Loads
+                    td
+                      span(:class="state['1oa'] ? 'load-on' : ''")
+                        | 1:{{state['1oa'] ? 'On' : 'Off'}}
+                      | &nbsp;
+                      span(:class="state['2oa'] ? 'load-on' : ''")
+                        | 2:{{state['2oa'] ? 'On' : 'Off'}}
+
+              td
+                table.info
+                  tr
+                    th Current Time
+                    td
+                      span {{current_time}}
+
+                  tr
+                    th Remaining
+                    td(title="Total run time (days:hours:mins:secs)").
+                      #[span(v-if="plan_time_remaining") {{plan_time_remaining | time}} of]
+                      {{toolpath.time | time}}
+                  tr
+                    th ETA
+                    td.eta {{eta}}
+
+                  tr
+                    th Progress
+                    td.progress
+                      label {{(progress || 0) | percent}}
+                      .bar(:style="'width:' + (progress || 0) * 100 + '%'")
+
+    .tabs
+     
+      input#tab1(type="radio", name="tabs",checked="" @click="tab = 'auto'")
+      label(for="tab1", title="Run GCode programs",style="height:50px;width:100px") Auto
+
+      input#tab2(type="radio", name="tabs", @click="tab = 'mdi'")
+      label(for="tab2", title="Manual GCode entry",style="height:50px;width:100px") MDI
+
+      input#tab3(type="radio", name="tabs", @click="tab = 'messages'")
+      label(for="tab3",style="height:50px;width:100px") Messages
+
+      input#tab4(type="radio", name="tabs", @click="tab = 'indicators'")
+      label(for="tab4",style="height:50px;width:100px") Indicators
+
+
+
+      
+      section#content1.tab-content.pure-form
+        .toolbar.pure-control-group
+          button.pure-button(:class="{'attention': is_holding}",
+            title="{{is_running ? 'Pause' : 'Start'}} program.",
+            @click="start_pause", :disabled="!state.selected",
+            style="height:100px;width:100px;font-weight:normal")
+            .fa(:class="is_running ? 'fa-pause' : 'fa-play'")
+
+          button.pure-button(title="Stop program.", @click="stop", style="height:100px;width:100px;font-weight:normal")
+            .fa.fa-stop
+
+          button.pure-button(title="Pause program at next optional stop (M1).",
+            @click="optional_pause", v-if="false", style="height:100px;width:100px;font-weight:normal")
+            .fa.fa-stop-circle-o
+
+          button.pure-button(title="Execute one program step.", @click="step",
+            :disabled="(!is_ready && !is_holding) || !state.selected",
+            v-if="false", style="height:100px;width:100px;font-weight:normal")
+            .fa.fa-step-forward
+
+          button.pure-button(title="Upload a new GCode program.", @click="open",
+            :disabled="!is_ready",style="height:100px;width:100px;font-weight:normal")
+            .fa.fa-folder-open
+
+          form.gcode-file-input.file-upload
+            input(type="file", @change="upload", :disabled="!is_ready",
+              accept=".nc,.ngc,.gcode,.gc")
+
+          a(:disabled="!state.selected", download,
+              :href="'/api/file/' + state.selected",
+              title="Download the selected GCode program.")
+            button.pure-button(:disabled="!state.selected", style="height:100px;width:100px")
+              .fa.fa-download
+
+          button.pure-button(title="Delete current GCode program.",
+            @click="deleteGCode = true",
+            :disabled="!state.selected || !is_ready",style="height:100px;width:100px;font-weight:normal")
+            .fa.fa-trash
+
+          message(:show.sync="deleteGCode")
+            h3(slot="header") Delete GCode?
+            p(slot="body")
+            div(slot="footer")
+              button.pure-button(@click="deleteGCode = false") Cancel
+              button.pure-button.button-error(@click="delete_all")
+                .fa.fa-trash
+                | &nbsp;all
+              button.pure-button.button-success(@click="delete_current")
+                .fa.fa-trash
+                | &nbsp;selected
+
+          select(title="Select previously uploaded GCode programs.",
+            v-model="state.selected", @change="load", :disabled="!is_ready",
+            style="max-width:100%")
+            option(v-for="file in state.files", :value="file") {{file}}
+
+          .progress(v-if="toolpath_progress && toolpath_progress < 1",
+            title="Simulating GCode to check for errors, calculate ETA and " +
+              "generate 3D view.  You can run GCode before the simulation " +
+              "finishes.")
+            div(:style="'width:' + (toolpath_progress || 0) * 100 + '%'")
+              label Simulating {{(toolpath_progress || 0) | percent}}
+
+        path-viewer(:toolpath="toolpath", :state="state", :config="config")
+        gcode-viewer
+
+      section#content2.tab-content
+        .mdi.pure-form(title="Manual GCode entry.")
+          button.pure-button(:disabled="!can_mdi",
+            :class="{'attention': is_holding}",
+            title="{{is_running ? 'Pause' : 'Start'}} command.",
+            @click="mdi_start_pause",style="height:100px;width:100px")
+            .fa(:class="is_running ? 'fa-pause' : 'fa-play'")
+
+          button.pure-button(title="Stop command.", @click="stop",style="height:100px;width:100px")
+            .fa.fa-stop
+
+          input(v-model="mdi", :disabled="!can_mdi", @keyup.enter="submit_mdi")
+
+        div
+          em The machine is currently operating in #[strong {{mach_units}}] units.  Use G20/G21 to switch units.
+
+        .history(:class="{placeholder: !history}")
+          span(v-if="!history.length") MDI history displays here.
+          ul
+            li(v-for="item in history", @click="load_history($index)",
+               track-by="$index")
+              | {{item}}
+
+      section#content3.tab-content
+        console
+
+      section#content4.tab-content
+        indicators(:state="state", :template="template")
+
+    .override(title="Feed rate override.")
+      label Feed
+      input(type="range", min="0", max="2", step="0.01",
+        v-model="feed_override", @change="override_feed")
+      span.percent {{feed_override | percent 0}}
+
+    .override(title="Spindle speed override.")
+      label Speed
+      input(type="range", min="0", max="2", step="0.01",
+        v-model="speed_override", @change="override_speed")
+      span.percent {{speed_override | percent 0}}
+
+    
+script#estop-template(type="text/x-template")
+  svg(version="1.1", xmlns:svg="http://www.w3.org/2000/svg",
+    xmlns="http://www.w3.org/2000/svg",
+    xmlns:xlink="http://www.w3.org/1999/xlink",
+    width="130", height="130")
+      defs
+        path#text-path-1(d="m 73.735,673.129 c 0,55.107 44.673,99.780 99.780,99.780 55.107,0 99.780,-44.673 99.780,-99.780 0,-55.107 -44.673,-99.780 -99.780,-99.780 -55.107,0 -99.780,44.673 -99.780,99.780 z")
+
+        path#text-path-2(d="m 258.714,673.129 c 0,47.053 -38.144,85.198 -85.198,85.198 -47.053,0 -85.198,-38.144 -85.198,-85.198 0,-47.053 38.144,-85.198 85.198,-85.198 47.053,0 85.198,38.144 85.198,85.198 z")
+
+        filter#filter5134(style="color-interpolation-filters:sRGB")
+          feflood(flood-opacity="0.431", flood-color="rgb(0,0,0)")
+          fecomposite(in2="SourceGraphic", operator="in")
+          fegaussianblur(stddeviation="4", result="blur")
+          feoffset(dx="4", dy="4", result="offset")
+          fecomposite(in="SourceGraphic", in2="offset", operator="over",
+            result="fbSourceGraphic")
+          fecolormatrix(result="fbSourceGraphicAlpha", in="fbSourceGraphic",
+            values="0 0 0 -1 0 0 0 0 -1 0 0 0 0 -1 0 0 0 0 1 0")
+          feflood(flood-opacity="0.431", flood-color="rgb(0,0,0)",
+            in="fbSourceGraphic")
+          fecomposite(in2="fbSourceGraphic", operator="out")
+          fegaussianblur(stddeviation="4", result="blur")
+          feoffset(dx="-4", dy="-4", result="offset")
+          fecomposite(in2="fbSourceGraphic", in="offset", operator="atop",
+            result="fbSourceGraphic")
+          fecolormatrix(result="fbSourceGraphicAlpha", in="fbSourceGraphic",
+            values="0 0 0 -1 0 0 0 0 -1 0 0 0 0 -1 0 0 0 0 1 0")
+          feflood(flood-opacity="0.431", flood-color="rgb(0,0,0)",
+            in="fbSourceGraphic")
+          fecomposite(in2="fbSourceGraphic", operator="in")
+          fegaussianblur(stddeviation="4", result="blur")
+          feoffset(dx="4", dy="4", result="offset")
+          fecomposite(in2="offset", in="fbSourceGraphic", operator="over")
+
+        filter#filter5158(style="color-interpolation-filters:sRGB",)
+          feflood(flood-opacity="0.431", flood-color="rgb(0,0,0)")
+          fecomposite(in2="SourceGraphic", operator="out")
+          fegaussianblur(stddeviation="7", result="blur")
+          feoffset(dx="4", dy="4")
+          fecomposite(in2="SourceGraphic", operator="atop")
+
+        filter#filter5266(style="color-interpolation-filters:sRGB")
+          feflood(flood-opacity="0.372", flood-color="rgb(0,0,0)")
+          fecomposite(in2="SourceGraphic", operator="in")
+          fegaussianblur(stddeviation="2", result="blur")
+          feoffset(dx="1", dy="1", result="offset")
+          fecomposite(in="SourceGraphic", in2="offset", operator="over")
+
+        filter#filter5278(style="color-interpolation-filters:sRGB")
+          feflood(flood-opacity="0.372", flood-color="rgb(0,0,0)")
+          fecomposite(in2="SourceGraphic", operator="out")
+          fegaussianblur(stddeviation="2", result="blur")
+          feoffset(dx="2", dy="2", result="offset")
+          fecomposite(in="offset", in2="SourceGraphic", operator="atop")
+
+
+      g(transform="scale(0.6, 0.6), translate(-65, -526)")
+        // Yellow ring
+        circle.ring(style="fill:#f5e138;filter:url(#filter5266)",
+          cx="173", cy="633", r="100")
+
+        // Text
+        g(style="font-weight:bold;font-size:20px;font-family:Sans;fill:#666")
+          text(transform="matrix(-0.733,-0.679,0.679,-0.733,-156.726,1250.703)")
+            textpath(xlink:href="#text-path-2") EMERGENCY
+
+          text(transform="matrix(0.276,-0.961,0.961,0.276,-523.818,609.026)")
+            textpath(xlink:href="#text-path-1") STOP
+
+        g.button
+          circle(style="fill:#c42626;filter:url(#filter5134)",
+            cx="173", cy="633", r="74")
+
+          // Inner circle
+          circle(style="fill:#c42626;filter:url(#filter5158)",
+            cx="173", cy="633", r="37")
+
+          // Arrows
+          g(transform="matrix(0.327,0,0,0.327,50.806,478.966)", style="stroke:#fff;stroke-width:13;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;filter:url(#filter5278);fill:none")
+            g
+              path(transform="matrix(1.946,0,0,1.946,-359.987,-383.373)", d="m 411.696,521.147 c -10.574,4.472 -22.200,6.945 -34.404,6.945 -12.203,0 -23.830,-2.473 -34.404,-6.945 -10.574,-4.472 -20.097,-10.944 -28.095,-18.942 -7.997,-7.997 -12.913,-13.504 -17.386,-24.078")
+              path(d="m 221.801,582.657 -2.991,-35.524 28.482,14.166 z")
+
+            g(transform="matrix(-0.5,-0.866,0.866,-0.5,149.811,1033.447)")
+              path(transform="matrix(1.946,0,0,1.946,-359.987,-383.373)", d="m 411.696,521.147 c -10.574,4.472 -22.200,6.945 -34.404,6.945 -12.203,0 -23.830,-2.473 -34.404,-6.945 -10.574,-4.472 -20.097,-10.944 -28.095,-18.942 -7.997,-7.997 -11.525,-14.205 -17.386,-24.078")
+              path(d="m 221.801,582.657 -2.991,-35.524 28.482,14.166 z")
+
+            g(transform="matrix(-0.5,0.866,-0.866,-0.5,971.430,383.185)")
+              path(transform="matrix(1.946,0,0,1.946,-359.987,-383.373)", d="m 411.696,521.147 c -10.574,4.472 -22.200,6.945 -34.404,6.945 -12.203,0 -23.830,-2.473 -34.404,-6.945 -10.574,-4.472 -20.097,-10.944 -28.095,-18.942 -7.997,-7.997 -9.562,-8.624 -14.034,-19.199")
+              path(d="m 221.801,582.657 -2.991,-35.524 28.482,14.166 z")
+script#gcode-viewer-template(type="text/x-template")
+  .gcode
+    .clusterize
+      .clusterize-scroll
+        ul.clusterize-content
+script#help-view-template(type="text/x-template")
+    #help
+script#indicators-template(type="text/x-template")
+  .indicators
+    table.legend
+      tr
+        th.header(colspan=100) Legend
+
+      tr
+        td
+         .fa.fa-plus-circle.io
+        th Hi/+3.3v
+        th.separator
+        td
+         .fa.fa-minus-circle.io
+        th Lo/Gnd
+        th.separator
+        td
+         .fa.fa-circle.io.active
+        th Active
+        th.separator
+        td
+         .fa.fa-circle.io.inactive
+        th Inactive
+        th.separator
+        td
+         .fa.fa-circle-o.io
+        th Tristated/Disabled
+
+    table.inputs
+      tr
+        th.header(colspan=7) Inputs
+
+      tr
+        th State
+        th Pin
+        th Name
+        th.separator
+        th State
+        th Pin
+        th Name
+
+      each motor in '0123'
+        tr
+          td: io-indicator(name=`min-switch-${motor}`, :state="state")
+          td {{get_min_pin(#{motor})}}
+          th Motor #{motor} Min
+          th.separator
+          td: io-indicator(name=`max-switch-${motor}`, :state="state")
+          td {{get_max_pin(#{motor})}}
+          th Motor #{motor} Max
+
+      tr
+        td: io-indicator(name="estop", :state="state")
+        td 23
+        th EStop
+        th.separator
+        td: io-indicator(name="probe", :state="state")
+        td 22
+        th Probe
+
+      tr(v-if="false")
+        td {{state['1ai'] | percent 0}}
+        td 24
+        th Analog 1
+        th.separator
+        td {{state['2ai'] | percent 0}}
+        td 18
+        th Analog 2
+
+    table.outputs
+      tr
+        th.header(colspan=7) Outputs
+
+      tr
+        th State
+        th Pin
+        th Name
+        th.separator
+        th State
+        th Pin
+        th Name
+
+      tr
+        td: io-indicator(name="tool-enable-mode", :state="state")
+        td 15
+        th Tool Enable
+        th.separator
+        td: io-indicator(name="load-1", :state="state")
+        td 2
+        th Load 1
+
+      tr
+        td: io-indicator(name="tool-direction-mode", :state="state")
+        td 16
+        th Tool Direction
+        th.separator
+        td: io-indicator(name="load-2", :state="state")
+        td 1
+        th Load 2
+
+      tr
+        td {{state.pd | percent 0}}
+        td 17
+        th Tool PWM
+        th.separator
+        td: io-indicator(name="fault", :state="state")
+        td 21
+        th Fault
+
+    table.pwr_fault
+      tr
+        th.header(colspan=5)
+          | Power Faults
+          span(v-if="state.pwr_version") &nbsp(Version {{state.pwr_version}})
+      tr
+        th(:class="{error: state.under_voltage}") Under voltage
+        td(:class="{error: state.under_voltage}")
+          | {{state.under_voltage ? 'True' : 'False'}}
+        th.separator
+        th(:class="{error: state.over_voltage}") Over voltage
+        td(:class="{error: state.over_voltage}")
+          | {{state.over_voltage ? 'True' : 'False'}}
+      tr
+        th(:class="{error: state.over_current}") Over current
+        td(:class="{error: state.over_current}")
+          | {{state.over_current ? 'True' : 'False'}}
+        th.separator
+        th(:class="{error: state.sense_error}", :title="sense_error")
+          | Sense error
+        td(:class="{error: state.sense_error}")
+          | {{state.sense_error ? 'True' : 'False'}}
+      tr
+        th(:class="{error: state.shunt_overload}") Shunt overload
+        td(:class="{error: state.shunt_overload}")
+          | {{state.shunt_overload ? 'True' : 'False'}}
+        th.separator
+        th(:class="{error: state.shunt_error}") Shunt error
+        td(:class="{error: state.shunt_error}")
+          | {{state.shunt_error ? 'True' : 'False'}}
+      tr
+        th(:class="{error: state.load1_shutdown}") Load 1 shutdown
+        td(:class="{error: state.load1_shutdown}")
+          | {{state.load1_shutdown ? 'True' : 'False'}}
+        th.separator
+        th(:class="{error: state.load2_shutdown}") Load 2 shutdown
+        td(:class="{error: state.load2_shutdown}")
+          | {{state.load2_shutdown ? 'True' : 'False'}}
+      tr
+        th(:class="{error: state.motor_under_voltage}") Motor under volt
+        td(:class="{error: state.motor_under_voltage}")
+          | {{state.motor_under_voltage ? 'True' : 'False'}}
+        th.separator
+        th(:class="{error: state.motor_overload}") Motor overload
+        td(:class="{error: state.motor_overload}")
+          | {{state.motor_overload ? 'True' : 'False'}}
+
+      tr
+        th(:class="{error: state.power_shutdown}") Power shutdown
+        td(:class="{error: state.power_shutdown}")
+          | {{state.power_shutdown ? 'True' : 'False'}}
+        th.separator
+        th
+        td
+
+    table.motor_fault
+      tr
+        th.header(colspan=99)
+          | Motor Faults
+          .fa(:class="motor_fault_class()", title="General motor driver fault")
+
+      tr
+        th Motor
+        th(title="Overtemperature fault"): .fa.fa-thermometer-full
+        th(title="Overcurrent motor channel A") A #[.fa.fa-bolt]
+        th(title="Predriver fault motor channel A")
+          | A #[.fa.fa-exclamation-triangle]
+        th(title="Overcurrent motor channel B") B #[.fa.fa-bolt]
+        th(title="Predriver fault motor channel B")
+          | B #[.fa.fa-exclamation-triangle]
+        th(title="Driver communication failure"): .fa.fa-handshake-o
+        th(title="Reset all motor flags")
+          .fa.fa-eraser(@click="motor_reset()")
+
+      tr(v-for="motor in [0, 1, 2, 3]")
+        td {{motor}}
+        td: .fa(:class="motor_fault_class(motor, 0)",
+          title="Overtemperature fault")
+        td: .fa(:class="motor_fault_class(motor, 1)",
+          title="Overcurrent motor channel A")
+        td: .fa(:class="motor_fault_class(motor, 3)",
+          title="Predriver fault motor channel A")
+        td: .fa(:class="motor_fault_class(motor, 2)",
+          title="Overcurrent motor channel B")
+        td: .fa(:class="motor_fault_class(motor, 4)",
+          title="Predriver fault motor channel B")
+        td: .fa(:class="motor_fault_class(motor, 8)",
+          title="Driver communication failure")
+        td(:title="'Reset motor ' + motor + ' flags'")
+          .fa.fa-eraser(@click="motor_reset(motor)")
+
+    table.measurements
+      tr
+        th.header(colspan=5) Measurements
+
+      tr
+        td {{state.vin | fixed 1}} V
+        th Input
+        th.separator
+        td {{state.vout | fixed 1}} V
+        th Output
+
+      tr
+        td {{state.motor | fixed 2}} A
+        th Motor
+        th.separator
+        td {{state.vdd | fixed 2}} A
+        th Low-side
+
+      tr
+        td {{state.load1 | fixed 2}} A
+        th Load 1
+        th.separator
+        td {{state.load2 | fixed 2}} A
+        th Load 2
+
+      tr
+        td {{state.temp | fixed 0}} ℃
+        th Temp
+        th.separator
+        td(:class="{'error': 80 <= state.rpi_temp}")
+          | {{state.rpi_temp | fixed 0}} ℃
+        th RPi Temp
+
+    h2 DB25 breakout box
+    img(src="images/DB25_breakout_box.png")
+
+    h2 DB25-M2 breakout
+    img(src="images/DB25-M2_breakout.png")
+script#io-indicator-template(type="text/x-template")
+  .fa.io(:class="klass", :title="tooltip")
+script#io-view-template(type="text/x-template")
+  #io
+    h1 I/O Configuration
+
+    .pure-form.pure-form-aligned
+      fieldset
+        h2 Switches
+        templated-input(v-for="templ in template.switches", :name="$key",
+          :model.sync="config.switches[$key]", :template="templ")
+
+          label.extra(slot="extra", v-if="templ.pin")
+            | Pin {{templ.pin}}
+            io-indicator(:name="$key", :state="state")
+
+      fieldset
+        h2 Outputs
+        templated-input(v-for="templ in template.outputs", :name="$key",
+          :model.sync="config.outputs[$key]", :template="templ")
+
+          label.extra(slot="extra")
+            | Pin {{templ.pin}}
+            io-indicator(:name="$key", :state="state")
+script#message-template(type="text/x-template")
+  .modal-mask(v-if="show", :class="class")
+    .modal-wrapper
+      .modal-container
+        .modal-header
+          slot(name="header") default header
+
+        .modal-body
+          slot(name="body") default body
+
+        .modal-footer
+          slot(name="footer")
+            button.pure-button.button-success(@click="show = false") OK
+script#modbus-reg-view-template(type="text/x-template")
+  tr.modbus-reg
+    td.reg-index {{index}}
+    td.reg-type
+      select(v-model="model['reg-type']", @change="change")
+        option(v-for="opt in template['reg-type']['values']", :value="opt")
+          | {{opt}}
+
+    td.reg-addr
+      input(v-model="model['reg-addr']", @change="change", type="text",
+        :min="template['reg-addr'].min", :max="template['reg-addr'].max",
+        pattern="[0-9]*", :disabled="model['reg-type'] == 'disabled'",
+        number)
+
+    td.reg-value
+      input(v-model="model['reg-value']", @change="change", type="text",
+        :min="template['reg-value'].min", :max="template['reg-value'].max",
+        pattern="[0-9]*", :disabled="!has_user_value", number)
+script#motor-view-template(type="text/x-template")
+  .motor(:class="{slave: is_slave}")
+    h1 Motor {{index}} Configuration
+
+    .pure-form.pure-form-aligned
+      fieldset(v-for="category in template.motors.template", :class="$key")
+        h2 {{$key}}
+
+        templated-input(v-for="templ in category",v-if="show($key, templ)", :name="$key",
+          :model.sync="motor[$key]", :template="templ")
+
+          label.extra(v-if="$key == 'microsteps'", slot="extra",
+            title="Microsteps per second")
+            | ({{ustepPerSec / 1000 | fixed 1}}k µstep/sec)
+
+          label.extra(v-if="$key == 'max-velocity'", slot="extra",
+            title="Revolutions Per Minute") ({{rpm | fixed 0}} RPM)
+
+          label.extra(v-if="$key == 'max-accel' && metric", slot="extra",
+            title="G-force") ({{gForce | fixed 3}} g)
+
+          label.extra(v-if="$key == 'max-jerk' && metric", slot="extra",
+            title="G-force per minute") ({{gForcePerMin | fixed 2}} g/min)
+
+          label.extra(v-if="$key == 'step-angle'", slot="extra",
+            title="Steps per revolution") ({{stepsPerRev | fixed 0}} steps/rev)
+
+          label.extra(v-if="$key == 'travel-per-rev' && metric", slot="extra",
+            title="Micrometers per step") ({{umPerStep | fixed 1}} µm/step)
+
+          label.extra(v-if="$key == 'travel-per-rev' && !metric", slot="extra",
+            title="Thousandths of an inch per step")
+            | ({{milPerStep | fixed 2}} mil/step)
+
+          label.extra(v-if="$key == 'min-switch' || $key == 'max-switch'",
+            slot="extra")
+            | Pin {{templ.pins[index]}}
+            io-indicator(:name="$key + '-' + index", :state="state")
+
+          label.extra(v-if="$key == 'search-velocity'", slot="extra",
+            title="Revolutions Per Minute")
+            | ({{stallRPM | fixed 0}} RPM)
+
+          label.extra(v-if="$key == 'stall-microstep'", slot="extra",
+            title="Microsteps Per Second")
+            | ({{stallUStepPerSec / 1000 | fixed 1}}k µstep/sec)
+script#path-viewer-template(type="text/x-template")
+  .path-viewer(v-show="enabled", :class="{small: small}")
+    .path-viewer-toolbar
+      .tool-button(title="Toggle path view size.",
+        @click="small = !small", :class="{active: !small}")
+        .fa.fa-arrows-alt
+
+      .tool-button(@click="showTool = !showTool", :class="{active: showTool}",
+        title="Show/hide tool.")
+        img(src="images/tool.png")
+
+      .tool-button(@click="showBBox = !showBBox", :class="{active: showBBox}",
+        title="Show/hide bounding box.")
+        img(src="images/bbox.png")
+
+      .tool-button(@click="showAxes = !showAxes", :class="{active: showAxes}",
+        title="Show/hide axes.")
+        img(src="images/axes.png")
+
+      .tool-button(@click="showIntensity = !showIntensity",
+        :class="{active: showIntensity}", title="Show/hide LASER intensity.")
+        img(src="images/intensity.png")
+
+      each view in "isometric top front".split(" ")
+        .tool-button(@click=`snap('${view}')`, title=`Snap to ${view} view.`)
+          img(src=`images/${view}.png`)
+
+    .path-viewer-content
+
+    table.path-viewer-messages(
+      v-if="typeof toolpath.messages != 'undefined' && " +
+        "toolpath.messages.length")
+      tr
+        th Level
+        th Location
+        th Message
+
+      tr(v-for="msg in toolpath.messages", :class="'log-' + msg.level")
+        td.level {{msg.level}}
+        td.location
+          | {{msg.line}}
+          span(v-if="msg.column") :{{msg.column}}
+        td.message {{msg.msg}}
+script#settings-view-template(type="text/x-template")
+  #settings
+script#templated-input-template(type="text/x-template")
+  .pure-control-group(class="tmpl-input-{{name}}", :title="title")
+    label(:for="name") {{name}}
+
+    select(v-if="template.type == 'enum' || template.values", v-model="view",
+      :name="name", @change="change")
+      option(v-for="opt in template.values", track-by="$index", :value="opt" :disabled="opt === '-----' ? true : false") {{opt}}
+
+    input(v-if="template.type == 'bool'", type="checkbox", v-model="view",
+      :name="name", @change="change")
+
+    input(v-if="template.type == 'float'", v-model.number="view", number,
+      :min="template.min", :max="template.max", :step="template.step || 'any'",
+      type="number", :name="name", @keyup="change")
+
+    input(v-if="template.type == 'int' && !template.values", number,
+      v-model.number="view", :min="template.min", :max="template.max",
+      type="number", :name="name", @keyup="change")
+
+    input(v-if="template.type == 'string'", v-model="view", type="text",
+      :name="name", @keyup="change")
+
+    textarea(v-if="template.type == 'text'", v-model="view", :name="name",
+      @keyup="change")
+
+    label.units {{units}}
+
+    slot(name="extra")
+script#tool-view-template(type="text/x-template")
+  #tool
+    h1 Tool Configuration
+
+    .pure-form.pure-form-aligned
+      fieldset
+        .pure-control-group
+          label(for="tool-type") tool-type
+
+          select(v-model="config.tool['selected-tool']", name="tool-type", @change="change_selected_tool")
+            option(v-for="tool in toolList", :value="tool.id", :disabled="tool.disabled") {{tool.name}}
+
+        templated-input(v-for="templ in template.tool",
+          :name="$key", v-if="show_tool_settings($key)"
+          :model.sync="config.tool[$key]", :template="templ")
+
+          label.extra(slot="extra", v-if="$key == 'tool-enable-mode' || $key == 'tool-direction-mode'")
+            | Pin {{templ.pin}}
+            io-indicator(:name="$key", :state="state")
+
+      fieldset(v-if="is_pwm_spindle")
+        h2 PWM Spindle
+        templated-input(v-for="templ in template['pwm-spindle']",
+          :name="$key", :model.sync="config['pwm-spindle'][$key]",
+          :template="templ")
+
+      fieldset(v-if="is_modbus")
+        h2 Modbus Configuration
+        templated-input(v-for="templ in template['modbus-spindle']",
+          :name="$key", :model.sync="config['modbus-spindle'][$key]",
+          :template="templ", v-if="show_modbus_field($key)")
+
+        h2 Modbus Status
+        .pure-control-group(title="VFD connection status")
+          label connection
+          tt {{modbus_status}}
+        .pure-control-group(title="Numerical status reported by VFD")
+          label status
+          tt {{state.ss || 0}}
+        .pure-control-group(title="Speed reported by VFD")
+          label speed
+          tt {{state.s | fixed}}
+          label.units RPM
+
+      fieldset.modbus-program(
+        v-if="is_modbus && this.tool_type != 'HUANYANG VFD'")
+        h2 Active Modbus Program
+        p(v-if="$root.modified")
+          | (Click #[tt(class="save") Save] to activate the selected
+          | #[b tool-type].)
+        table.modbus-regs.fixed-regs
+          tr
+            th Index
+            th Command
+            th Address
+            th Value
+            th Failures
+
+          tr(v-for="(index, reg) in regs_tmpl.index", v-if="state[reg + 'vt']",
+            :class="{warn: get_reg_fails(reg)}")
+            td.reg-index {{index}}
+            td.reg-type {{get_reg_type(reg)}}
+            td.reg-addr {{get_reg_addr(reg)}}
+            td.reg-value {{get_reg_value(reg)}}
+            td.reg-fails {{get_reg_fails(reg)}}
+
+        button.pure-button-secondary(@click="customize") Customize
+        button.pure-button-secondary(@click="clear",
+          v-if="tool_type == 'CUSTOM MODBUS VFD'") Clear
+        button.pure-button-secondary(@click="reset_failures") Reset Failures
+
+      fieldset(v-if="tool_type == 'CUSTOM MODBUS VFD'")
+        h2 Edit Modbus Program
+        table.modbus-regs
+          tr
+            th Index
+            th Command
+            th Address
+            th Value
+
+          tr(v-for="(index, reg) in config['modbus-spindle'].regs",
+            is="modbus-reg", :index="index", :model.sync="reg",
+            :template="template['modbus-spindle'].regs.template",
+            v-if="!index || reg['reg-type'] != 'disabled' || " +
+            "config['modbus-spindle'].regs[index - 1]['reg-type'] != " +
+            "'disabled'")
+
+      .notes(v-if="tool_type == 'HUANYANG VFD'")
+        h2 Notes
+        p Set the following using the VFD's front panel.
+        table.modbus-regs.fixed-regs
+          tr
+            th Address
+            th Value
+            td Meaning
+            th Description
+          tr
+            td.reg-addr PD000
+            td.reg-value 0
+            td Unlock
+            td Unlock parameters
+          tr
+            td.reg-addr PD001
+            td.reg-value 2
+            td RS485
+            td Command source
+          tr
+            td.reg-addr PD002
+            td.reg-value 2
+            td RS485
+            td Speed/frequency source
+          tr
+            td.reg-addr PD163
+            td.reg-value 1
+            td Modbus ID
+            td Must match #[tt bus-id] above.
+          tr
+            td.reg-addr PD164
+            td.reg-value 1
+            td 9600 baud
+            td Must match #[tt baud] above.
+          tr
+            td.reg-addr PD165
+            td.reg-value 3
+            td 8 bit, no parity, RTU mode
+            td Must match #[tt parity] above.
+
+        p
+          | Other settings according to the
+          |
+          a(href="https://buildbotics.com/upload/vfd/Huanyang-VFD-manual.pdf",
+            target="_blank") Huanyang VFD manual
+          |
+          | and spindle type.
+
+      .notes(v-if="tool_type.startsWith('NOWFOREVER VFD')")
+        h2 Notes
+        p Set the following using the VFD's front panel.
+        table.modbus-regs.fixed-regs
+          tr
+            th Address
+            th Value
+            th Meaning
+            th Description
+          tr
+            td.reg-addr P0-000
+            td.reg-value 2
+            td Modbus communication
+            td Command source
+          tr
+            td.reg-addr P0-001
+            td.reg-value 0
+            td Main frequence X
+            td Select frequency source
+          tr
+            td.reg-addr P0-002
+            td.reg-value 6
+            td Modbus communication
+            td Main frequency X
+          tr
+            td.reg-addr P0-055
+            td.reg-value 1
+            td Modbus ID
+            td Must match #[tt bus-id] above
+          tr
+            td.reg-addr P0-056
+            td.reg-value 2
+            td 9600 baud
+            td Must match #[tt baud] above
+          tr
+            td.reg-addr P0-057
+            td.reg-value 0
+            td 1 start, 8 data, no parity, 1 stop
+            td Must match #[tt parity] above
+
+      .notes(v-if="tool_type.startsWith('DELTA VFD015M21A')")
+        h2 Notes
+        p Set the following using the VFD's front panel.
+        table.modbus-regs.fixed-regs
+          tr
+            th Address
+            th Value
+            th Meaning
+            th Description
+          tr
+            td.reg-addr Pr.00
+            td.reg-value 3
+            td RS-485
+            td Source of frequency command
+          tr
+            td.reg-addr Pr.01
+            td.reg-value 3
+            td RS-485 with STOP
+            td Source of operation command
+          tr
+            td.reg-addr Pr.88
+            td.reg-value 1
+            td Modbus ID
+            td Must match #[tt bus-id] above
+          tr
+            td.reg-addr Pr.89
+            td.reg-value 1
+            td 9600 baud
+            td Must match #[tt baud] above
+          tr
+            td.reg-addr Pr.92
+            td.reg-value 3
+            td 8 bit, no parity, RTU mode
+            td Must match #[tt parity] above
+          tr
+            td.reg-addr Pr.157
+            td.reg-value 1
+            td Modbus mode
+            td Communication mode
+
+        p
+          | Other settings according to the
+          |
+          a(href="https://buildbotics.com/upload/vfd/Delta_VFD015M21A.pdf",
+            target="_blank") Delta VFD015M21A VFD manual
+          |
+          | and spindle type.
+
+      .notes(v-if="tool_type.startsWith('YL600')")
+        h2 Notes
+        p Set the following using the VFD's front panel.
+        table.modbus-regs.fixed-regs
+          tr
+            th Address
+            th Value
+            th Meaning
+            th Description
+          tr
+            td.reg-addr P00.01
+            td.reg-value 3
+            td Modbus RS-485
+            td Start / stop command source
+          tr
+            td.reg-addr P03.00
+            td.reg-value 3
+            td 9600 baud
+            td Must match #[tt baud] above
+          tr
+            td.reg-addr P03.01
+            td.reg-value 1
+            td Modbus ID
+            td Must match #[tt bus-id] above
+          tr
+            td.reg-addr P03.02
+            td.reg-value 5
+            td 8 bit, no parity, 2 stop
+            td Must match #[tt parity] above
+          tr
+            td.reg-addr P03.04
+            td.reg-value 500
+            td RS-485 max delay
+            td Time in milliseconds
+          tr
+            td.reg-addr P07.15
+            td.reg-value 5
+            td RS-485
+            td Frequency source
+
+        p
+          | Other settings according to the
+          |
+          a(href="https://buildbotics.com/upload/vfd/YL620-A.pdf",
+            target="_blank") YL600 VFD manual
+          |
+          | and spindle type.
+
+      .notes(v-if="tool_type.startsWith('SUNFAR')")
+        h2 Notes
+        p Set the following using the VFD's front panel.
+        table.modbus-regs.fixed-regs
+          tr
+            th Address
+            th Value
+            th Meaning
+            th Description
+          tr
+            td.reg-addr F0.0
+            td.reg-value 2
+            td Serial communication
+            td Frequency source
+          tr
+            td.reg-addr F0.2
+            td.reg-value 1002
+            td Serial communication
+            td Control source
+          tr
+            td.reg-addr F4.0
+            td.reg-value 0104
+            td Modbus, no parity, 9600 baud
+            td Must match #[tt parity] and #[tt baud] above
+          tr
+            td.reg-addr F4.1
+            td.reg-value 1
+            td Bus ID
+            td Must match #[tt bus-id] above
+          tr
+            td.reg-addr F4.4
+            td.reg-value 3
+            td Seconds
+            td Communication timeout
+
+        p
+          | Other settings according to the
+          |
+          a(href="https://buildbotics.com/upload/vfd/Sunfar-E300.pdf",
+            target="_blank") Sunfar E300 VFD manual
+          |
+          | and spindle type.
+
+      .notes(v-if="tool_type.startsWith('OMRON')")
+        h2 Notes
+        p Set the following using the VFD's front panel.
+        table.modbus-regs.fixed-regs
+          tr
+            th Address
+            th Value
+            th Meaning
+            th Description
+          tr
+            td.reg-addr C071
+            td.reg-value 5
+            td 9600 BAUD
+            td Must match #[tt baud] above
+          tr
+            td.reg-addr C072
+            td.reg-value 1
+            td Bus ID 1
+            td Must match #[tt bus-id] above
+          tr
+            td.reg-addr C074
+            td.reg-value 0
+            td No parity
+            td Must match #[tt parity] above
+          tr
+            td.reg-addr C075
+            td.reg-value 2
+            td 2 stop bits
+            td Serial stop bits
+          tr
+            td.reg-addr C076
+            td.reg-value 4
+            td Deceleration stop
+            td Communication error action
+          tr
+            td.reg-addr C077
+            td.reg-value 500
+            td 0.5 seconds
+            td Communication error timeout
+          tr
+            td.reg-addr C078
+            td.reg-value 1
+            td 1 milisecond
+            td Communication wait time
+          tr
+            td.reg-addr C096
+            td.reg-value 0
+            td Modbus-RTU
+            td Communication mode
+          tr
+            td.reg-addr P200
+            td.reg-value 0
+            td Standard
+            td Modbus mapping
+          tr
+            td.reg-addr P400
+            td.reg-value 0
+            td Big endian
+            td Communication byte order
+
+        p
+          | Other settings according to the
+          |
+          a(href="https://buildbotics.com/upload/vfd/omron_i570_mx2.pdf",
+            target="_blank") OMRON MX2 VFD manual
+          |
+          | and spindle type.  The VFD must be rebooted after changing
+          | the above settings.
