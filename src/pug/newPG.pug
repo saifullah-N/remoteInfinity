@@ -68,7 +68,7 @@ html(lang="en")
             button.pure-button.pure-button-primary(@click="showShutdownDialog", style="width: 100%")
               .fa.fa-power-off              
 
-    //-   #main
+      #main
         .nav-header
           .brand
             img(src="/images/onefinity_logo.png")
@@ -102,26 +102,25 @@ html(lang="en")
           component(:is="currentView + '-view'", :index="index",
             :config="config", :template="template", :state="state", keep-alive)
 
-    //- message.error-message(:show.sync="errorShow")
-    //-   div(slot="header")
-    //-     .estop(:class="{active: state.es}"): estop(@click="estop")
-    //-     h3 ERROR: {{errorMessage}}
+    message.error-message(:show.sync="errorShow")
+      div(slot="header")
+        .estop(:class="{active: state.es}"): estop(@click="estop")
+        h3 ERROR: {{errorMessage}}
 
-    //-   div(slot="body")
-    //-     console
+      div(slot="body")
+        console
+        button.pure-button(@click="block_error_dialog")
+          .fa.fa-ban
+           &nbsp;Stop
+        label showing errors for
+        input(style="width: 50px", v-model="errorTimeout", number)
+        label seconds.
 
-    //-     button.pure-button(@click="block_error_dialog")
-    //-       .fa.fa-ban
-    //-       | &nbsp;Stop
-    //-     label showing errors for
-    //-     input(style="width: 50px", v-model="errorTimeout", number)
-    //-     label seconds.
+      div(slot="footer")
+        button.pure-button.pure-button-primary(@click="errorShow = false") Ok
 
-    //-   div(slot="footer")
-    //-     button.pure-button.pure-button-primary(@click="errorShow = false") Ok
-
-    //- message(:show.sync="confirmUpgrade")
-    //-   h3(slot="header") Upgrade Firmware?
+    message(:show.sync="confirmUpgrade")
+      h3(slot="header") Upgrade Firmware?
     //-   div(slot="body")
     //-     p
     //-       | Are you sure you want to upgrade the firmware to version
