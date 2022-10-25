@@ -91,7 +91,7 @@ function update_object(dst, src, remove) {
 }
 
 module.exports = new Vue({
-    el: "body",
+    el: "#app",
 
     data: function() {
         return {

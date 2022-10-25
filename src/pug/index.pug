@@ -16,9 +16,10 @@ html(lang="en")
     style: include ../../build/http/svelte-components/smui.css
     style: include ../../build/http/svelte-components/style.css
     style: include:stylus ../stylus/style.styl
-
-  //- body(v-cloak)
-
+  body(v-cloak)
+    #app
+      control
+      motor-view
     #svelte-dialog-host
 
     #overlay(v-if="status != 'connected'")
@@ -170,7 +171,7 @@ html(lang="en")
             | Continue
             .fa.fa-play
 
-    #templates: include ../../build/templates.pug
+    //- #templates: include ../../build/templates.pug
     iframe#download-target(style="display:none")
 
     script: include ../static/js/vue.js
@@ -180,9 +181,6 @@ html(lang="en")
     script: include:browserify ../js/main.js
     script: include ../../build/http/svelte-components/index.js
     script: include ../static/js/ui.js
-<control-view/>
-control-view
-control-view
 
 script#admin-general-view-template(type="text/x-template")
   #admin-general
