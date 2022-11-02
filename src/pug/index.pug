@@ -22,83 +22,8 @@ html(lang="en")
 
     #overlay(v-if="status != 'connected' && !updatingFirmware")
       span {{status}}
-
-    #layout
-      a#menuLink.menu-link(@click="toggle_menu"): span
-
-      #menu
-        button.save.pure-button.button-success(:disabled="!modified",
-          @click="save") Save
-
-        .pure-menu
-          ul.pure-menu-list
-            li.pure-menu-heading
-              a.pure-menu-link(href="#control") Control
-
-            li.pure-menu-heading
-              a.pure-menu-link(href="#settings") Settings
-
-            li.pure-menu-heading
-              a.pure-menu-link(href="#motor:0") Motors
-
-            li.pure-menu-item(v-for="motor in config.motors")
-              a.pure-menu-link(:href="'#motor:' + $index") Motor {{$index}}
-
-            li.pure-menu-heading
-              a.pure-menu-link(href="#tool") Tool
-
-            li.pure-menu-heading
-              a.pure-menu-link(href="#io") I/O
-
-            li.pure-menu-heading
-              a.pure-menu-link(href="#admin-general") Admin
-
-            li.pure-menu-item
-              a.pure-menu-link(href="#admin-general") General
-
-            li.pure-menu-item
-              a.pure-menu-link(href="#admin-network") Network
-
-            li.pure-menu-heading
-              a.pure-menu-link(href="#cheat-sheet") Cheat Sheet
-
-            li.pure-menu-heading
-              a.pure-menu-link(href="#help") Help
-              
-            button.pure-button.pure-button-primary(@click="showShutdownDialog", style="width: 100%")
-              .fa.fa-power-off              
-
-      #main
-        .nav-header
-          .brand
-            img(src="/images/onefinity_logo.png")
-            .version
-              | v{{config.full_version}}
-              a.upgrade-link(v-if="newFirmwareAvailable", href="#admin-general")
-                | Upgrade to v{{newFirmwareVersion}}
-                .fa.fa-exclamation-circle.upgrade-attention
-
-          #svelte-network-details-host(style="display: flex;")
-
-          .whitespace
-
-          .video(title="Plug camera into USB.\n" +
-            "Left click to toggle video size.\n" +
-            "Right click to toggle crosshair.", @click="toggle_video",
-            @contextmenu="toggle_crosshair", :class="video_size")
-            .crosshair(v-if="crosshair")
-              .vertical
-              .horizontal
-              .box
-            img(src="/api/video")
-
-          .estop(:class="{active: state.es}")
-            estop(@click="estop")
-
-        .content(class="{{currentView}}-view")
-          component(:is="currentView + '-view'", :index="index",
-            :config="config", :template="template", :state="state", keep-alive)
-
+    block mainContent
+    
     message.error-message(:show.sync="errorShow")
       div(slot="header")
         .estop(:class="{active: state.es}"): estop(@click="estop")
