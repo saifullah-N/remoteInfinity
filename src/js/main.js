@@ -87,7 +87,7 @@ window.onload = function() {
         }
 
         parts.push(value);
-
+src/js/main.js
         for (let i = 0; i < parts.length; i++) {
             parts[i] = parts[i].toFixed(i == parts.length - 1 ? precision : 0);
             if (i && parts[i] < 10) {
